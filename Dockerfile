@@ -1,29 +1,35 @@
-# Base image -> https://github.com/runpod/containers/blob/main/official-templates/base/Dockerfile
-# DockerHub -> https://hub.docker.com/r/runpod/base/tags
-FROM runpod/base:0.4.0-cuda11.8.0
+FROM nvidia/cuda:12.1.0-base-ubuntu22.04
 
-# The base image comes with many system dependencies pre-installed to help you get started quickly.
-# Please refer to the base image's Dockerfile for more information before adding additional dependencies.
-# IMPORTANT: The base image overrides the default huggingface cache location.
+# Install Python and other dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
+# Clone the CSM repository
+WORKDIR /app
+RUN git clone https://github.com/SesameAILabs/csm.git
 
-# --- Optional: System dependencies ---
-# COPY builder/setup.sh /setup.sh
-# RUN /bin/bash /setup.sh && \
-#     rm /setup.sh
+# Set up Python environment with virtual env (as in your original commands)
+WORKDIR /app/csm
+RUN python3.10 -m venv .venv && \
+    . .venv/bin/activate && \
+    pip install -r requirements.txt && \
+    pip install huggingface_hub torchaudio
 
-
-# Python dependencies
+# Python dependencies from the original template
 COPY builder/requirements.txt /requirements.txt
-RUN python3.11 -m pip install --upgrade pip && \
-    python3.11 -m pip install --upgrade -r /requirements.txt --no-cache-dir && \
+RUN . /app/csm/.venv/bin/activate && \
+    pip install --upgrade pip && \
+    pip install --upgrade -r /requirements.txt --no-cache-dir && \
     rm /requirements.txt
-
-# NOTE: The base image comes with multiple Python versions pre-installed.
-#       It is reccommended to specify the version of Python when running your code.
-
 
 # Add src files (Worker Template)
 ADD src .
 
-CMD python3.11 -u /handler.py
+# Copy handler.py to the root if not already in src
+
+# Keep the container running and run the handler with the virtual environment
+CMD ["/bin/bash", "-c", "source /app/csm/.venv/bin/activate && python -u src/handler.py"]
