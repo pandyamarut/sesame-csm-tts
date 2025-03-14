@@ -4,7 +4,7 @@ import torchaudio
 import base64
 import io
 import os
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, login
 
 # Import the CSM generator
 # We'll assume the generator.py is included in your src files
@@ -17,6 +17,13 @@ except ImportError:
     sys.path.append("/app/csm")
     from generator import load_csm_1b
 
+hf_token = os.environ.get("HF_TOKEN")
+if hf_token:
+    print("Logging in to Hugging Face Hub...")
+    login(token=hf_token)
+    print("Login successful!")
+else:
+    print("WARNING: No Hugging Face token provided. Set the HF_TOKEN environment variable if the model is private.")
 # Load the model at startup to keep it in memory
 print("Downloading and loading CSM-1B model...")
 model_path = hf_hub_download(repo_id="sesame/csm-1b", filename="ckpt.pt")
